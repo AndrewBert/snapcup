@@ -3,38 +3,57 @@ part of 'snap_cubit.dart';
 class SnapState {
   final List<DrawingPoints?> drawingPoints;
   final Color selectedColor;
-  final String message;
   final bool showColorPicker;
-  final Uint8List? imageData;
+  final Snap? selectedSnap;
+  final Snap mySnap;
+  final int snapCount;
+  final PictureRecorder recorder;
 
-  const SnapState({
+  SnapState({
     required this.drawingPoints,
     required this.selectedColor,
-    this.message = '',
+    required this.mySnap,
+    required this.snapCount,
+    required this.recorder,
+    this.selectedSnap,
     this.showColorPicker = false,
-    this.imageData,
   });
 
-  SnapState copywith(
-      {List<DrawingPoints?>? drawingPoints,
-      Color? selectedColor,
-      String? message,
-      bool? showColorPicker}) {
+  SnapState copywith({
+    List<DrawingPoints?>? drawingPoints,
+    Color? selectedColor,
+    String? message,
+    bool? showColorPicker,
+    Snap? selectedSnap,
+    int? snapCount,
+    Snap? mySnap,
+    PictureRecorder? recorder,
+  }) {
     return SnapState(
       drawingPoints: drawingPoints ?? this.drawingPoints,
       selectedColor: selectedColor ?? this.selectedColor,
-      message: message ?? this.message,
       showColorPicker: showColorPicker ?? this.showColorPicker,
+      selectedSnap: selectedSnap ?? this.selectedSnap,
+      mySnap: mySnap ?? this.mySnap,
+      snapCount: snapCount ?? this.snapCount,
+      recorder: recorder ?? this.recorder,
     );
   }
 }
 
 class SnapInitial extends SnapState {
-  const SnapInitial()
+  SnapInitial({int? snapCount})
       : super(
-            drawingPoints: const [],
-            selectedColor: Colors.red,
-            showColorPicker: false);
+          drawingPoints: const [],
+          selectedColor: Colors.red,
+          showColorPicker: false,
+          selectedSnap: null,
+          //
+          snapCount: snapCount ?? 0,
+          mySnap: const Snap(id: '', message: ''),
+          //dont know if this makes sense
+          recorder: PictureRecorder(),
+        );
 }
 
 // class SnapSubmittedSuccess extends SnapState {
