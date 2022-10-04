@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+// ignore: depend_on_referenced_packages
 import 'package:json_annotation/json_annotation.dart';
 
 part 'snap.g.dart';

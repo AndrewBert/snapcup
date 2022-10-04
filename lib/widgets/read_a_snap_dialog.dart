@@ -1,11 +1,15 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:snapcup/bloc/bloc.dart';
 
 class ReadASnapDialog extends StatelessWidget {
   final String message;
-  final String imagePath;
+  final Uint8List imageBytes;
 
   const ReadASnapDialog(
-      {required this.message, required this.imagePath, super.key});
+      {required this.message, required this.imageBytes, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +20,12 @@ class ReadASnapDialog extends StatelessWidget {
             //snap image goes here!
             Text(
               message,
-            )
+            ),
+            Image.memory(
+              imageBytes,
+              width: 100,
+              height: 100,
+            ),
           ],
         ),
       ),
@@ -24,6 +33,7 @@ class ReadASnapDialog extends StatelessWidget {
         ElevatedButton(
           child: const Text('Close'),
           onPressed: () {
+            context.read<SnapCubit>().hideReadASnapDialog();
             Navigator.of(context).pop();
           },
         ),

@@ -1,10 +1,10 @@
-import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:bloc/bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:snapcup/models/drawing_painter.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/models.dart';
@@ -24,10 +24,11 @@ class SnapCubit extends Cubit<SnapState> {
     final RenderBox renderBox = context.findRenderObject() as RenderBox;
     final newPoint = (DrawingPoints(
         points: renderBox.globalToLocal(globalPosition),
+        // points: globalPosition,
         paint: Paint()
           ..isAntiAlias = true
           ..color = state.selectedColor
-          ..strokeWidth = 1.0));
+          ..strokeWidth = state.selectedStrokeWidth));
     emit(state.copywith(drawingPoints: [...state.drawingPoints, newPoint]));
   }
 
@@ -35,12 +36,16 @@ class SnapCubit extends Cubit<SnapState> {
     emit(state.copywith(drawingPoints: [...state.drawingPoints, null]));
   }
 
+  void changeStrokeWidth(double width) {
+    emit(state.copywith(selectedStrokeWidth: width));
+  }
+
   void changeColor(Color color) {
     emit(state.copywith(selectedColor: color));
   }
 
-  void toggleColorPicker() {
-    emit(state.copywith(showColorPicker: !state.showColorPicker));
+  void hideReadASnapDialog() {
+    emit(state.copywith(readASnapDialogIsVisible: false));
   }
 
   void clear() {
@@ -51,7 +56,7 @@ class SnapCubit extends Cubit<SnapState> {
     //search from end of list (null) to the next null closest to the end of the list
     //remove the elements beween those two null values
     final pointsWithoutLastElement =
-        state.drawingPoints.sublist(0, state.drawingPoints.length - 1);
+        state.drawingPoints.sublist(0, state.drawingPoints.length - 2);
     final nullClosestToEndOfList = pointsWithoutLastElement.lastIndexOf(null);
     final undonePointsList =
         pointsWithoutLastElement.sublist(0, nullClosestToEndOfList);
@@ -63,12 +68,20 @@ class SnapCubit extends Cubit<SnapState> {
 
     String? uuid;
 
-    if (state.mySnap.imageData != null) {
+    if (state.drawingPoints.isNotEmpty) {
+      //upload image
+      //todo determine a good width and height
+      final recorder = PictureRecorder();
+      state.painter.paint(Canvas(recorder), const Size(1024, 1024));
+      final image = await recorder.endRecording().toImage(1024, 1024);
+      final imageBytes = await image.toByteData();
+      final imageAsU8list = imageBytes!.buffer.asUint8List();
+
       final storageRef = FirebaseStorage.instance.ref();
       uuid = const Uuid().v4();
-      final imageRef = storageRef.child("images/$uuid");
+      final imageRef = storageRef.child("images/$uuid.png");
       try {
-        await imageRef.putData(state.mySnap.imageData!);
+        await imageRef.putData(imageAsU8list);
         emit(state.copywith(snapCount: state.snapCount + 1));
       } on FirebaseException catch (e) {
         // ...
@@ -76,14 +89,18 @@ class SnapCubit extends Cubit<SnapState> {
     }
 
     // Add a new document with a generated ID
-    await db.collection("snaps").add(state.mySnap.toJson()).then(
-        (DocumentReference doc) =>
-            debugPrint('DocumentSnapshot added with ID: ${doc.id}'));
-    //upload image
+    var snapJson = state.mySnap.toJson();
+    if (uuid != null) {
+      snapJson['imageId'] = uuid;
+    }
+    await db.collection("snaps").add(snapJson).then((DocumentReference doc) =>
+        debugPrint('DocumentSnapshot added with ID: ${doc.id}'));
 
-    //create new recorder
     // emit(const SnapSubmittedSuccess());
-    emit(SnapInitial(snapCount: state.snapCount));
+    emit(SnapInitial(
+        snapCount: state.snapCount,
+        selectedColor: state.selectedColor,
+        selectedStrokeWidth: state.selectedStrokeWidth));
   }
 
   Future<void> pickSnap() async {
@@ -102,9 +119,14 @@ class SnapCubit extends Cubit<SnapState> {
           snap = snap.copyWith(imageData: imageData);
         }
 
-        emit(state.copywith(selectedSnap: snap, snapCount: res.size - 1));
+        emit(state.copywith(
+            selectedSnap: snap,
+            snapCount: res.size - 1,
+            readASnapDialogIsVisible: true));
       },
       onError: (e) => debugPrint("Error completing: $e"),
     );
   }
+
+  //todo method to get snap count from DB
 }

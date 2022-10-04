@@ -10,9 +10,8 @@ import 'models.dart';
 class DrawingPainter extends CustomPainter {
   List<DrawingPoints?> pointsList;
   List<Offset> offsetPoints = [];
-  PictureRecorder recorder;
 
-  DrawingPainter({required this.pointsList, required this.recorder});
+  DrawingPainter({required this.pointsList});
 
   @override
   void paint(Canvas canvas, Size size) {
